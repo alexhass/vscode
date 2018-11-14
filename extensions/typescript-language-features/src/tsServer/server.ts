@@ -60,7 +60,7 @@ export class TypeScriptServerSpawner {
 
 	private getForkOptions() {
 		const debugPort = TypeScriptServerSpawner.getDebugPort();
-		const tsServerForkOptions: electron.IForkOptions = {
+		const tsServerForkOptions: electron.ForkOptions = {
 			execArgv: debugPort ? [`--inspect=${debugPort}`] : [],
 		};
 		return tsServerForkOptions;
@@ -72,8 +72,8 @@ export class TypeScriptServerSpawner {
 		plugins: ReadonlyArray<TypeScriptServerPlugin>,
 	): { args: string[], cancellationPipeName: string | undefined, tsServerLogFile: string | undefined } {
 		const args: string[] = [];
-		let cancellationPipeName: string | undefined = undefined;
-		let tsServerLogFile: string | undefined = undefined;
+		let cancellationPipeName: string | undefined;
+		let tsServerLogFile: string | undefined;
 
 		const apiVersion = currentVersion.version || API.defaultVersion;
 
@@ -178,7 +178,7 @@ export class TypeScriptServer extends Disposable {
 		private readonly _tracer: Tracer,
 	) {
 		super();
-		this._reader = new Reader<Proto.Response>(this._childProcess.stdout);
+		this._reader = this._register(new Reader<Proto.Response>(this._childProcess.stdout));
 		this._reader.onData(msg => this.dispatchMessage(msg));
 		this._childProcess.on('exit', code => this.handleExit(code));
 		this._childProcess.on('error', error => this.handleError(error));
@@ -253,7 +253,7 @@ export class TypeScriptServer extends Disposable {
 
 	private tryCancelRequest(seq: number, command: string): boolean {
 		try {
-			if (this._requestQueue.tryCancelPendingRequest(seq)) {
+			if (this._requestQueue.tryDeletePendingRequest(seq)) {
 				this._tracer.logTrace(`TypeScript Server: canceled request with sequence number ${seq}`);
 				return true;
 			}
@@ -298,7 +298,7 @@ export class TypeScriptServer extends Disposable {
 	public executeImpl(command: string, args: any, executeInfo: { isAsync: boolean, token?: vscode.CancellationToken, expectsResult: boolean, lowPriority?: boolean }): Promise<any> {
 		const request = this._requestQueue.createRequest(command, args);
 		const requestInfo: RequestItem = {
-			request: request,
+			request,
 			expectsResponse: executeInfo.expectsResult,
 			isAsync: executeInfo.isAsync,
 			queueingType: getQueueingType(command, executeInfo.lowPriority)
@@ -337,7 +337,7 @@ export class TypeScriptServer extends Disposable {
 		} else {
 			result = Promise.resolve(null);
 		}
-		this._requestQueue.push(requestInfo);
+		this._requestQueue.enqueue(requestInfo);
 		this.sendNextRequests();
 
 		return result;
@@ -369,7 +369,7 @@ export class TypeScriptServer extends Disposable {
 
 	private sendNextRequests(): void {
 		while (this._pendingResponses.size === 0 && this._requestQueue.length > 0) {
-			const item = this._requestQueue.shift();
+			const item = this._requestQueue.dequeue();
 			if (item) {
 				this.sendRequest(item);
 			}
