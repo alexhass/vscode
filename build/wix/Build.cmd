@@ -2,8 +2,8 @@
 
 REM Change version numbers here:
 SET PRODUCT_MAJOR_VERSION=1
-SET PRODUCT_MINOR_VERSION=28
-SET PRODUCT_MAINTENANCE_VERSION=2
+SET PRODUCT_MINOR_VERSION=29
+SET PRODUCT_MAINTENANCE_VERSION=0
 
 REM Configure available SDK version:
 REM See folder e.g. "C:\Program Files (x86)\Windows Kits\[10]\bin\[10.0.17763.0]\x64\WiLangId.vbs"
@@ -44,7 +44,8 @@ FOR %%G IN (x64,x86) DO (
   CALL BuildSetupTranslationTransform.cmd es-es 3082
   CALL BuildSetupTranslationTransform.cmd fr-fr 1036
   CALL BuildSetupTranslationTransform.cmd it-it 1040
-  CALL BuildSetupTranslationTransform.cmd ja-jp 1041
+  REM WixUI_Advanced bug: https://github.com/wixtoolset/issues/issues/5909
+  REM CALL BuildSetupTranslationTransform.cmd ja-jp 1041
   CALL BuildSetupTranslationTransform.cmd ko-kr 1042
   CALL BuildSetupTranslationTransform.cmd ru-ru 1049
   CALL BuildSetupTranslationTransform.cmd zh-cn 2052
